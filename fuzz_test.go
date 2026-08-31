@@ -46,7 +46,8 @@ func runOperationSequence(t *testing.T, idx *Indexer, data []byte, maxOps int) {
 				t.Errorf("NKeysBetween(%q, %q, %d) error = %v", prev, next, n, err)
 				return
 			}
-			if !checkKeysBetween(t, idx, prev, next, batch) {
+			checkKeysBetween(t, idx, prev, next, batch)
+			if t.Failed() {
 				return
 			}
 			keys = slices.Insert(keys, pos, batch...)
@@ -57,14 +58,16 @@ func runOperationSequence(t *testing.T, idx *Indexer, data []byte, maxOps int) {
 				t.Errorf("KeyBetween(%q, %q) error = %v", prev, next, err)
 				return
 			}
-			if !checkKeysBetween(t, idx, prev, next, []string{key}) {
+			checkKeysBetween(t, idx, prev, next, []string{key})
+			if t.Failed() {
 				return
 			}
 			keys = slices.Insert(keys, pos, key)
 			step++
 		}
 
-		if !checkKeysBetween(t, idx, "", "", keys) {
+		checkKeysBetween(t, idx, "", "", keys)
+		if t.Failed() {
 			return
 		}
 	}
