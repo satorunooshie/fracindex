@@ -13,7 +13,7 @@ func FuzzIndexerOperationSequence(f *testing.F) {
 	f.Add([]byte("append-prepend-middle"))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		idx := mustNewForTest(t)
+		idx := newIndexerForTest(t)
 		runOperationSequence(t, idx, data, 128)
 	})
 }
@@ -25,7 +25,7 @@ func FuzzCustomAlphabetOperationSequence(f *testing.F) {
 	f.Add(byte(3), []byte{255, 0, 128, 64, 32})
 
 	f.Fuzz(func(t *testing.T, alphabet byte, data []byte) {
-		idx := mustNewCustomForTest(t, alphabet)
+		idx := customIndexerForTest(t, alphabet)
 		runOperationSequence(t, idx, data, 64)
 	})
 }
@@ -43,22 +43,30 @@ func runOperationSequence(t *testing.T, idx *Indexer, data []byte, maxOps int) {
 			n := int(data[step+1]%8) + 1
 			batch, err := idx.NKeysBetween(prev, next, n)
 			if err != nil {
-				t.Fatalf("NKeysBetween(%q, %q, %d): %v", prev, next, n, err)
+				t.Errorf("NKeysBetween(%q, %q, %d) error = %v", prev, next, n, err)
+				return
 			}
-			assertKeysBetween(t, idx, prev, next, batch)
+			if !checkKeysBetween(t, idx, prev, next, batch) {
+				return
+			}
 			keys = slices.Insert(keys, pos, batch...)
 			step += 2
 		} else {
 			key, err := idx.KeyBetween(prev, next)
 			if err != nil {
-				t.Fatalf("KeyBetween(%q, %q): %v", prev, next, err)
+				t.Errorf("KeyBetween(%q, %q) error = %v", prev, next, err)
+				return
 			}
-			assertKeysBetween(t, idx, prev, next, []string{key})
+			if !checkKeysBetween(t, idx, prev, next, []string{key}) {
+				return
+			}
 			keys = slices.Insert(keys, pos, key)
 			step++
 		}
 
-		assertKeysBetween(t, idx, "", "", keys)
+		if !checkKeysBetween(t, idx, "", "", keys) {
+			return
+		}
 	}
 }
 
@@ -72,57 +80,17 @@ func boundsAt(keys []string, pos int) (prev, next string) {
 	return prev, next
 }
 
-func assertKeysBetween(t *testing.T, idx *Indexer, prev, next string, keys []string) {
-	t.Helper()
-
-	if !slices.IsSorted(keys) {
-		t.Fatalf("keys are not sorted: %#v", keys)
-	}
-	for i, key := range keys {
-		if err := idx.Validate(key); err != nil {
-			t.Fatalf("key %q did not validate: %v", key, err)
-		}
-		if prev != "" && key <= prev {
-			t.Fatalf("key[%d] = %q is not after prev %q", i, key, prev)
-		}
-		if next != "" && key >= next {
-			t.Fatalf("key[%d] = %q is not before next %q", i, key, next)
-		}
-		if i > 0 && key <= keys[i-1] {
-			t.Fatalf("key[%d] = %q is not after key[%d] = %q", i, key, i-1, keys[i-1])
-		}
-	}
-}
-
-func mustNewForTest(tb testing.TB) *Indexer {
+func customIndexerForTest(tb testing.TB, alphabet byte) *Indexer {
 	tb.Helper()
 
-	idx, err := New()
-	if err != nil {
-		tb.Fatal(err)
-	}
-	return idx
-}
-
-func mustNewCustomForTest(tb testing.TB, alphabet byte) *Indexer {
-	tb.Helper()
-
-	var (
-		idx *Indexer
-		err error
-	)
 	switch alphabet % 4 {
 	case 0:
-		idx, err = New()
+		return newIndexerForTest(tb)
 	case 1:
-		idx, err = New(WithAlphabetSet(Base16))
+		return newIndexerForTest(tb, WithAlphabetSet(Base16))
 	case 2:
-		idx, err = New(WithDigitAlphabetSet(Base94))
+		return newIndexerForTest(tb, WithDigitAlphabetSet(Base94))
 	default:
-		idx, err = New(WithDigitAlphabetSet(Base95))
+		return newIndexerForTest(tb, WithDigitAlphabetSet(Base95))
 	}
-	if err != nil {
-		tb.Fatal(err)
-	}
-	return idx
 }

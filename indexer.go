@@ -35,22 +35,22 @@ type AlphabetSet uint8
 
 const (
 	// Base16 identifies Base16DigitAlphabet.
-	Base16 AlphabetSet = iota
+	Base16 AlphabetSet = 16
 
 	// Base32 identifies Base32DigitAlphabet.
-	Base32
+	Base32 AlphabetSet = 32
 
 	// Base36 identifies Base36DigitAlphabet.
-	Base36
+	Base36 AlphabetSet = 36
 
 	// Base62 identifies Base62DigitAlphabet.
-	Base62
+	Base62 AlphabetSet = 62
 
 	// Base94 identifies Base94DigitAlphabet.
-	Base94
+	Base94 AlphabetSet = 94
 
 	// Base95 identifies Base95DigitAlphabet.
-	Base95
+	Base95 AlphabetSet = 95
 )
 
 // Indexer generates and validates keys for one fractional-index key space.
